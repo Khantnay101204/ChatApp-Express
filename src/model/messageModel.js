@@ -13,6 +13,15 @@ const messageSchema = mongoose.Schema({
     type: Date,
     default: Date.now(),
   },
+  deleted: {
+    type: Boolean,
+    default: false,
+  },
+  updated: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-export default messageSchema;
+const Msg = mongoose.model("Msg", messageSchema);
+export default Msg;
