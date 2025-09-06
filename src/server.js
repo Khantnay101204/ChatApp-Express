@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import app from "./app.js";
 import mongoose from "mongoose";
 import { Server } from "socket.io";
-import User from "./model/userModel.js";
+
 import Msg from "./model/messageModel.js";
 dotenv.config({ path: "./config.env" });
 
