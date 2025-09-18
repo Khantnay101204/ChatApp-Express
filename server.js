@@ -29,7 +29,7 @@ io.on("connection", (socket) => {
   socket.on("send_message", async (data) => {
     const { userID, msg } = data;
 
-    encoded = await encryptMsg(msg);
+    const encoded = await encryptMsg(msg);
     const message = await Message.create({
       sender: userID,
       iv: encoded.iv,
@@ -37,9 +37,32 @@ io.on("connection", (socket) => {
     });
 
     io.emit("receive_message", {
+      id: message.id,
       sender: userID,
       decryptedMessage: await decryptMsg(message),
       sentAt: message.sentAt,
+    });
+  });
+
+  socket.on("edit_message", async (data) => {
+    const { msgObj, editMsg } = data;
+    const encoded = await encryptMsg(editMsg);
+    const updated = await Message.findByIdAndUpdate(
+      msgObj.id,
+      {
+        iv: encoded.iv,
+        encryptedMsg: encoded.encryptedMsg,
+        edited: true,
+      },
+      { new: true }
+    );
+    const decryptedMessage = await decryptMsg(updated);
+
+    io.emit("message_edited", {
+      id: updated.id,
+      decryptedMessage,
+      iv: updated.iv,
+      edited: true,
     });
   });
 });

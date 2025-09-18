@@ -47,8 +47,10 @@ exports.getAllMessages = asyncCatcher(async (req, res, next) => {
     message.map(async (el) => {
       const decryptedMessage = await decryptMsg(el);
       return {
+        id: el.id,
         sender: el.sender,
         decryptedMessage,
+        edited: el.edited,
         sentAt: el.sentAt,
       };
     })
@@ -58,6 +60,37 @@ exports.getAllMessages = asyncCatcher(async (req, res, next) => {
     status: "success",
     data: {
       messages,
+    },
+  });
+});
+
+exports.editMessage = asyncCatcher(async (req, res, next) => {
+  const message = await Message.findById(req.params.id);
+
+  if (!message) {
+    next(new AppError("Message doesn't exist"), 404);
+  }
+
+  if (message.sender !== req.user.id) {
+    next(new AppError("You are not authorized to edit this message"), 401);
+  }
+  const encrypted = await encryptMsg(req.body.message);
+  const editedMessage = await Message.findByIdAndUpdate(
+    req.params.id,
+    {
+      iv: encrypted.iv,
+      encryptedMsg: encrypted.encryptedMsg,
+      edited: true,
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: editedMessage,
     },
   });
 });

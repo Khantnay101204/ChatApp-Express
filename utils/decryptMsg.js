@@ -1,5 +1,7 @@
 const crypto = require("crypto");
 exports.decryptMsg = async (hash) => {
+  console.log(hash.id);
+
   const iv = Buffer.from(hash.iv, "hex");
 
   const decipher = crypto.createDecipheriv(

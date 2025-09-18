@@ -7,6 +7,9 @@ router
   .route("/")
   .post(authController.protect, messageController.createMessage)
   .get(authController.protect, messageController.getAllMessages);
-router.route("/:id").get(authController.protect, messageController.getMessage);
+router
+  .route("/:id")
+  .get(authController.protect, messageController.getMessage)
+  .patch(authController.protect, messageController.editMessage);
 
 module.exports = router;
