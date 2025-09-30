@@ -74,6 +74,7 @@ exports.editMessage = asyncCatcher(async (req, res, next) => {
   if (message.sender !== req.user.id) {
     next(new AppError("You are not authorized to edit this message"), 401);
   }
+
   const encrypted = await encryptMsg(req.body.message);
   const editedMessage = await Message.findByIdAndUpdate(
     req.params.id,
