@@ -3,13 +3,15 @@ const router = express.Router();
 const messageController = require("./../controllers/messageController");
 const authController = require("./../controllers/authController");
 
+router.use(authController.protect);
+
+router.route("/").post(messageController.createMessage);
+
+router.route("/:chatId").get(messageController.getChatMessages);
+
 router
-  .route("/")
-  .post(authController.protect, messageController.createMessage)
-  .get(authController.protect, messageController.getAllMessages);
-router
-  .route("/:id")
-  .get(authController.protect, messageController.getMessage)
-  .patch(authController.protect, messageController.editMessage);
+  .route("/single/:id")
+  .get(messageController.getMessage)
+  .patch(messageController.editMessage);
 
 module.exports = router;

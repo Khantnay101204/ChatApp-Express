@@ -3,6 +3,7 @@ const cors = require("cors");
 
 const userRoutes = require("./routes/userRoutes.js");
 const messageRoutes = require("./routes/messageRoutes.js");
+const chatRoutes = require("./routes/chatRoutes.js");
 const AppError = require("./utils/appError.js");
 const errorController = require("./controllers/errorController.js");
 const morgan = require("morgan");
@@ -14,6 +15,7 @@ app.use(cors());
 
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/messages", messageRoutes);
+app.use("/api/v1/chats", chatRoutes);
 
 app.use(/.*/, (req, res, next) => {
   next(new AppError(`Route ${req.originalUrl} not Found`, 404));
