@@ -16,57 +16,65 @@ mongoose
   .then(() => console.log("Database Successfully Connected "));
 
 const server = http.createServer(app);
+
 const io = new Server(server, {
+  pingTimeout: 60000,
   cors: {
     origin: "http://localhost:8080",
-    methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
 io.on("connection", (socket) => {
-  console.log("A user connected: ", socket.id);
-
-  socket.on("send_message", async (data) => {
-    const { userID, msg } = data;
-
-    const encoded = await encryptMsg(msg);
-    const message = await Message.create({
-      sender: userID,
-      iv: encoded.iv,
-      encryptedMsg: encoded.encryptedMsg,
-    });
-
-    io.emit("receive_message", {
-      id: message.id,
-      sender: userID,
-      decryptedMessage: await decryptMsg(message),
-      sentAt: message.sentAt,
-    });
+  // 1. Join personal user room for live sidebar/inbox updates
+  socket.on("setup", (userId) => {
+    if (!userId) return;
+    socket.join(userId);
+    socket.emit("connected");
   });
 
-  socket.on("edit_message", async (data) => {
-    const { msgObj, editMsg } = data;
-    const encoded = await encryptMsg(editMsg);
-    const updated = await Message.findByIdAndUpdate(
-      msgObj.id,
-      {
-        iv: encoded.iv,
-        encryptedMsg: encoded.encryptedMsg,
-        edited: true,
-      },
-      { new: true }
-    );
-    const decryptedMessage = await decryptMsg(updated);
+  // 2. Join a specific chat room when opened
+  socket.on("join chat", (chatId) => {
+    if (!chatId) return;
+    socket.join(chatId);
+  });
 
-    io.emit("message_edited", {
-      id: updated.id,
-      decryptedMessage,
-      iv: updated.iv,
-      edited: true,
+  // 3. Broadcast newly saved messages to room members & their inboxes
+  socket.on("new message", ({ chat, message }) => {
+    if (!chat || !message) return;
+
+    // Push live message to everyone currently viewing this chat room
+    socket.to(chat._id).emit("message received", { chat, message });
+
+    // Notify each participant's personal room so their inbox refreshes
+    if (Array.isArray(chat.users)) {
+      chat.users.forEach((user) => {
+        const userId = typeof user === "object" ? user._id : user;
+        const senderId =
+          typeof message.sender === "object"
+            ? message.sender._id
+            : message.sender;
+
+        if (userId && userId !== senderId) {
+          socket.to(userId).emit("inbox updated", { chat, message });
+        }
+      });
+    }
+  });
+
+  // 4. Broadcast inline message edits in real time
+  socket.on("edit message", ({ chatId, messageId, updatedText }) => {
+    if (!chatId || !messageId) return;
+    socket.to(chatId).emit("message edited", {
+      chatId,
+      messageId,
+      updatedText,
     });
   });
 });
 
-server.listen(port, () => {
-  console.log("server is running at " + port);
+// Make sure you call server.listen (NOT app.listen)
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Server & Socket.IO running on port ${PORT}`);
 });
