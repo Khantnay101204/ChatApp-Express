@@ -29,6 +29,10 @@ const MessageSchema = mongoose.Schema({
     ref: "Chat",
     required: [true, "Message must belong to a chat."],
   },
+  isSystem: {
+    type: Boolean,
+    default: false,
+  },
 
   readBy: [
     {

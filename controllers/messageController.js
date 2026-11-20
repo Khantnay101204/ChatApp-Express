@@ -113,32 +113,33 @@ exports.getChatMessages = asyncCatcher(async (req, res, next) => {
   }
 
   const isMember = chat.users.some(
-    (userId) => userId.toString() === req.user._id.toString(),
+    (userId) => String(userId) === String(req.user._id),
   );
-
   if (!isMember) {
-    return next(new AppError("You are not a member of this chat", 403));
+    return next(
+      new AppError("You are not authorized to view messages in this chat", 403),
+    );
   }
 
   const rawMessages = await Message.find({ chat: chatId }).sort({ sentAt: 1 });
 
   const messages = await Promise.all(
-    rawMessages.map(async (el) => {
-      const decryptedMessage = await decryptMsg(el);
+    rawMessages.map(async (msg) => {
+      const decryptedText = await decryptMsg(msg);
       return {
-        id: el._id,
-        sender: el.sender,
-        chat: el.chat,
-        decryptedMessage,
-        edited: el.edited,
-        sentAt: el.sentAt,
+        id: msg._id,
+        sender: msg.sender,
+        chat: msg.chat,
+        decryptedMessage: decryptedText,
+        isSystem: Boolean(msg.isSystem),
+        edited: Boolean(msg.edited),
+        sentAt: msg.sentAt,
       };
     }),
   );
 
   res.status(200).json({
     status: "success",
-    results: messages.length,
     data: {
       messages,
     },
